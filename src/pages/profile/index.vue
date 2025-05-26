@@ -632,15 +632,15 @@ export default {
         return;
       }
 
-      if (
-        ["recommend_award", "income_wallet", "deposit_wallet"].includes(
-          data.type
-        )
-      ) {
-        Dialog.alert({ message: "越秀集团上市期间，停止一切金融活动！" });
-
-        return;
-      }
+      // if (
+      //   ["recommend_award", "income_wallet", "deposit_wallet"].includes(
+      //     data.type
+      //   )
+      // ) {
+      //   Dialog.alert({ message: "越秀集团上市期间，停止一切金融活动！" });
+      //
+      //   return;
+      // }
 
       this.$router.push({
         name: "withdrawal",
