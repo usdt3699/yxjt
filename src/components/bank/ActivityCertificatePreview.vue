@@ -1,0 +1,330 @@
+<template>
+  <div>
+    <!-- 证书预览 -->
+    <van-overlay
+      :show="showPreview"
+      @click="closePreview"
+      class="certificate-preview-overlay"
+    >
+      <div class="certificate-preview-container" @click.stop>
+        <div class="certificate-preview-close" @click="closePreview">
+          <van-icon name="cross" size="24" color="#fff" />
+        </div>
+        <div class="certificate-preview-content">
+          <img
+            :src="certificateImage"
+            alt="创兴银行银联卡凭证"
+            class="certificate-preview-image"
+            v-if="certificateImage"
+          />
+        </div>
+        <div class="certificate-preview-footer">
+          <div class="save-button" @click="saveCertificate">保存证书</div>
+        </div>
+      </div>
+    </van-overlay>
+
+    <!-- 隐藏的canvas元素用于生成证书图片 -->
+    <canvas ref="certificateCanvas" style="display: none"></canvas>
+  </div>
+</template>
+
+<script>
+import { Toast, Icon, Overlay } from "vant";
+import moment from "moment";
+
+export default {
+  name: "ActivityCertificatePreview",
+  components: {
+    [Icon.name]: Icon,
+    [Overlay.name]: Overlay,
+  },
+  props: {
+    // 卡详情数据
+    cardDetail: {
+      type: Object,
+      default: null,
+    },
+    // 是否显示预览
+    show: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  data() {
+    return {
+      certificateImage: null,
+      showPreview: false,
+    };
+  },
+  watch: {
+    // 监听show属性变化
+    show(newVal) {
+      if (newVal) {
+        // 每次显示时重置证书图片，强制重新生成
+        this.certificateImage = null;
+        this.handleViewCertificate();
+      } else {
+        this.showPreview = false;
+      }
+    },
+    // 监听cardDetail变化
+    cardDetail(newVal) {
+      if (newVal) {
+        // 每次卡片数据变化时重置证书图片，强制重新生成
+        this.certificateImage = null;
+        if (this.show) {
+          this.handleViewCertificate();
+        }
+      }
+    },
+  },
+  methods: {
+    // 关闭证书预览
+    closePreview() {
+      this.showPreview = false;
+      this.$emit("update:show", false);
+    },
+
+    // 保存证书图片
+    saveCertificate() {
+      if (!this.certificateImage) {
+        Toast("证书图片未生成");
+        return;
+      }
+
+      // 创建一个临时链接
+      const link = document.createElement("a");
+      link.href = this.certificateImage;
+      link.download = "创兴银行银联卡凭证.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      Toast("证书保存成功");
+    },
+
+    // 处理查看证书
+    handleViewCertificate() {
+      console.log("查看银行卡凭证", this.cardDetail?.id);
+      // 显示加载中提示
+      Toast.loading({
+        message: "图片生成中...",
+        forbidClick: true,
+        duration: 0,
+      });
+
+      // 每次都重新生成证书图片
+      this.drawCertificate();
+
+      // 使用setTimeout确保图片生成完成后再显示预览
+      setTimeout(() => {
+        // 关闭加载提示
+        Toast.clear();
+        // 显示预览
+        this.showPreview = true;
+      }, 500); // 给予足够的时间让图片渲染完成
+    },
+
+    // 绘制证书
+    drawCertificate() {
+      console.log("开始绘制证书");
+      const canvas = this.$refs.certificateCanvas;
+      if (!canvas) {
+        console.error("找不到canvas元素");
+        return;
+      }
+
+      // 检查是否有卡详情数据
+      if (!this.cardDetail) {
+        console.error("没有卡详情数据");
+        Toast.fail("获取卡详情失败，请重试");
+        return;
+      }
+
+      // 设置高分辨率画布
+      const dpr = window.devicePixelRatio || 1;
+      const width = 1587 / 4; // 缩放到适合手机屏幕的尺寸
+      const height = 2272 / 4;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+
+      // 加载证书模板图片
+      const certificateImg = new Image();
+      certificateImg.onload = () => {
+        console.log("证书模板图片加载完成");
+        // 绘制证书背景
+        ctx.drawImage(certificateImg, 0, 0, width, height);
+
+        // 获取卡详情数据
+        const cardInfo = this.cardDetail;
+        const cardDetail = cardInfo.card_detail || {};
+        console.log("卡详情数据:", cardDetail);
+
+        // 设置字体样式
+        ctx.textAlign = "left";
+
+        // 绘制姓名（尊敬的后面）
+        ctx.font = '10px "SimSun"';
+        ctx.fillStyle = "#000";
+        ctx.fillText(cardDetail.name || "", width / 2 - 80, height / 2 - 138);
+
+        // 绘制卡类型（根据id判断）
+        let cardType = "";
+        if (cardInfo.id == 1) {
+          cardType = "金";
+        } else if (cardInfo.id == 2) {
+          cardType = "钛金";
+        } else if (cardInfo.id == 3) {
+          cardType = "钻石";
+        }
+        console.log("卡类型:", cardType);
+
+        // ctx.font = '7px "SimSun"';
+        // ctx.fillStyle = '#333333';
+        // // 卡类型位置需要根据实际模板调整
+        // ctx.fillText(cardType, width / 2-26, height / 2 - 68);
+
+        // 绘制信用额度
+        // ctx.font = '7px "SimSun"';
+        // ctx.fillStyle = '#333333';
+        // ctx.fillText(`${parseInt(cardInfo.invite_award_num/10000) || 0}`, width / 2 - 73, height / 2-46);
+
+        // // 绘制现金额度
+        // ctx.fillStyle = '#333333';
+        // ctx.fillText(`${parseInt(cardInfo.gift_coin_num/10000) || 0}`, width / 2 - 88, height / 2 -23);
+        //
+        // ctx.fillStyle = '#333333';
+        // ctx.fillText(cardType, width / 2 - 103, height / 2 -2 );
+
+        // 绘制固定日期 2025 4 18
+        // ctx.font = '10px "SimSun"';
+        // ctx.fillStyle = '#000';
+        // ctx.fillText('2025', width / 2 - 136, height - 141);
+        // ctx.fillText('4', width / 2 - 103, height - 141);
+        // ctx.fillText('25', width / 2 - 83, height - 141);
+
+        // 绘制底部日期（使用created_at）
+        if (cardDetail.created_at) {
+          try {
+            // 将日期拆分成年月日
+
+            const date = moment(cardDetail.created_at);
+            if (date.isValid()) {
+              const createdYear = date.format("YYYY");
+              const createdMonth = date.format("MM");
+              const createdDay = date.format("DD");
+
+              // 分别绘制年、月、日到对应的空白位置
+              // 注意：位置需要根据实际模板调整
+              ctx.font = '10px "SimSun"';
+              ctx.fillStyle = "#000";
+              ctx.fillText(createdYear, width / 2 + 50, height - 43);
+              ctx.fillText(createdMonth, width / 2 + 87, height - 43);
+              ctx.fillText(createdDay, width / 2 + 106, height - 43);
+            }
+          } catch (e) {
+            console.error("日期解析错误:", e);
+          }
+        }
+
+        // 保存绘制好的证书图片
+        this.certificateImage = canvas.toDataURL("image/png");
+        console.log(
+          "证书图片生成完成",
+          this.certificateImage ? "成功" : "失败"
+        );
+      };
+
+      certificateImg.onerror = (error) => {
+        console.error("图片加载失败:", error);
+        Toast.fail("证书模板加载失败");
+      };
+
+      try {
+        if (this.cardDetail.id == 1) {
+          certificateImg.src = require("../../assets/img/invite/activity/jk.jpg");
+        } else if (this.cardDetail.id == 2) {
+          certificateImg.src = require("../../assets/img/invite/activity/tjk.jpg");
+        } else if (this.cardDetail.id == 3) {
+          certificateImg.src = require("../../assets/img/invite/activity/zsk.jpg");
+        }
+
+        console.log("开始加载证书模板图片");
+      } catch (error) {
+        console.error("加载证书模板图片失败:", error);
+        Toast.fail("证书模板加载失败");
+      }
+    },
+  },
+};
+</script>
+
+<style scoped lang="less">
+.certificate-preview-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 10;
+}
+
+.certificate-preview-container {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.certificate-preview-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.certificate-preview-content {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.certificate-preview-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.certificate-preview-footer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+/* 保存按钮 */
+.save-button {
+  width: 154px;
+  height: 39.484px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: linear-gradient(149deg, #28d87d 14.44%, #01bd5d 87.25%);
+  color: #fff;
+  text-align: center;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 39.484px;
+  cursor: pointer;
+}
+</style>

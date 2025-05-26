@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>online chat window</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewprot-fit:contain">
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="cache-control" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<style type="text/css">
+	html,body{
+	    width:100%;
+	    height:100%;
+	}
+	
+	*{
+	    margin:0px;
+	    padding:0px;
+	}
+
+	#iframecontainer{
+		width:100%; 
+		height:100%;
+		MARGIN: 0px auto; 
+		overflow: hidden;
+		border:none;
+	}
+	
+	#pagecontainer{
+		width:100%; 
+		height:100%;
+		MARGIN: 0px auto;
+		overflow: hidden;
+	}
+	</style>
+  </head>
+  <body>
+	  	<div id="pagecontainer">
+  		<iframe id="iframecontainer" border="0"></iframe>
+ 		<script type="text/javascript">
+ 			var q="cpageurl="+encodeURIComponent(location.href);
+ 			if(location.search.indexOf("?")>=0){
+ 				q="&"+q;
+ 			}else{
+ 				q="?"+q;
+ 			}
+			document.getElementById("iframecontainer").src="htt"+"ps://t.m"+"nkfso"+"ft.com/dim"+location.search.replace("cid=", "pid=")+q;
+			function receiveMessage(event) {
+			    if(event.data.eventName=="setDocTitle"){
+			    	document.title=event.data.message;
+			    }
+			}
+ 			window.addEventListener("message", receiveMessage, false);
+		</script>
+  	</div>
+</body>
+</html>
